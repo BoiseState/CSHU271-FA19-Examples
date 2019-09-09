@@ -1,9 +1,9 @@
 package cshu271.tictactoe;
 
 import com.google.gson.Gson;
-import com.sun.jersey.api.client.ClientResponse.Status;
 import cshu271.tictactoe.Game.Player;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;

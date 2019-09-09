@@ -3,6 +3,8 @@ var game = new Object();
 
 game.private = new Object();
 
+game.currentGame = null;
+
 game.move = function (row, col) {
     if (!(game.private.state == undefined)) {
         var data = new Object;
@@ -145,6 +147,10 @@ game.drawBoard = function (board) {
 
 game.updateGame = function () {
     $.get("/api/game/" + game.private.state.gameId, function (data) {
+        
+        if (data.gameId != game.currentGame)
+            return;
+        
         game.private.state = data;
 
         game.drawBoard(data.board);
@@ -196,6 +202,7 @@ game.joinGame = function () {
     $.get("/api/join/" + game.private.userId, function (data) {
         game.private.state = data;
         game.clearBoard();
+        game.currentGame = data.gameId;
         setInterval(game.updateGame, 1000);
     });
 };

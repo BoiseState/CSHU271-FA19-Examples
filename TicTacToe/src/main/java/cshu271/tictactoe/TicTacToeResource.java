@@ -1,10 +1,10 @@
 
 package cshu271.tictactoe;
 
-import com.google.gson.Gson;
 import cshu271.tictactoe.Game.Player;
 import java.util.HashMap;
 import java.util.Map;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -19,7 +19,6 @@ import javax.ws.rs.core.Response.Status;
 public class TicTacToeResource
 {
 
-	private Gson gson = new Gson();
 	private static final Map<Integer, Game> pendingGames = new HashMap();
 	private static final Map<Integer, Game> startedGames = new HashMap();
 	private static final Map<Integer, Game> finishedGames = new HashMap();
@@ -29,22 +28,20 @@ public class TicTacToeResource
 	/**
 	 * Returns an Integer (user ID) that is a new unique identifier for a user to use in subsequent 
 	 * calls.
-	 * @return Response.status: Status.OK
-	 *          Response.entity Integer (json)
+	 * @return userId (json)
 	 */
 	@GET
 	@Path("/user")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getNewUserId()
 	{
-		return Response.status(Status.OK).entity(gson.toJson(nextUserId++)).build();
+		return JsonResponseBuilder.build((Integer)nextUserId++);
 	}
 
 	/**
 	 * Joins a user to a game, creating a game if necessary.  Returns the game ID.
 	 * @param userId the userId to join to a game
-	 * @return Response.status: Status.OK
-	 *          Response.entity: Integer (json)
+	 * @return Game (json)
 	 */
 	@GET
 	@Path("/join/{userId}")
@@ -71,15 +68,14 @@ public class TicTacToeResource
 				startedGames.put(game.getGameId(), game);
 			}
 		}
-		return Response.status(Status.OK).entity(gson.toJson(game)).build();
+		return JsonResponseBuilder.build(game);
 	}
 
 	/**
 	 * Returns the state of a current game indicated by the gameId
 	 * @param gameId the ID of the game to return the state for
-	 * @return Response.status: Status.NOT_FOUND if the game ID is invalid
-	 *          Response.status: Status.OK if the game ID is valid
-	 *          Response.entity: Game (json)
+	 * @return Error Status.NOT_FOUND if the game ID is invalid
+	 *          Game (json) if the game ID is valid
 	 */
 	@GET
 	@Path("/game/{id}")
@@ -88,17 +84,17 @@ public class TicTacToeResource
 	{
 		if (startedGames.containsKey(gameId))
 		{
-			return Response.status(Status.OK).entity(gson.toJson(startedGames.get(gameId))).build();
+			return JsonResponseBuilder.build(startedGames.get(gameId));
 		}
 		if (pendingGames.containsKey(gameId))
 		{
-			return Response.status(Status.OK).entity(gson.toJson(pendingGames.get(gameId))).build();
+			return JsonResponseBuilder.build(pendingGames.get(gameId));
 		}
 		if (finishedGames.containsKey(gameId))
 		{
-			return Response.status(Status.OK).entity(gson.toJson(finishedGames.get(gameId))).build();
+			return JsonResponseBuilder.build(finishedGames.get(gameId));
 		}
-		return Response.status(Status.NOT_FOUND).build();
+		return ErrorResponseBuilder.build(Status.NOT_FOUND);
 	}
 
 	/**
@@ -107,14 +103,14 @@ public class TicTacToeResource
 	 * @param userId the user applying the move
 	 * @param row the row 0-2 of the grid to apply the move to
 	 * @param column the column 0-2 of the grid to apply the move to
-	 * @return Response.status: Status.BAD_REQUEST if the row or column or move is invalid
-	 *          Response.status: Status.NOT_FOUND if the game is not a valid started game
-	 *          Response.status: Status.OK if the move is valid
-	 *          Response.entity: Game (json) if the move is valid
+	 * @return Error Status.BAD_REQUEST if the row or column or move is invalid
+	 *          Error Status.NOT_FOUND if the game is not a valid started game
+	 *          Game (json) if the move is valid
 	 */
 	@POST
 	@Path("/game/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response move(@PathParam("id") Integer gameId, 
 		@FormParam("userId") Integer userId, 
 		@FormParam("row") Integer row, 
@@ -122,14 +118,14 @@ public class TicTacToeResource
 	{
 		if (row == null || row < 0 || row > 2 || column == null || column < 0 || column > 2)
 		{
-			return Response.status(Status.BAD_REQUEST).build();
+			return ErrorResponseBuilder.build(Status.BAD_REQUEST);
 		}
 		
 		synchronized (startedGames)
 		{
 			if (!startedGames.containsKey(gameId))
 			{
-				return Response.status(Status.NOT_FOUND).build();
+				return ErrorResponseBuilder.build(Status.NOT_FOUND);
 			}
 			
 			Game game = startedGames.get(gameId);
@@ -141,11 +137,11 @@ public class TicTacToeResource
 					finishedGames.put(game.getGameId(), game);
 					startedGames.remove(game.getGameId());
 				}
-				return Response.status(Status.OK).entity(gson.toJson(game)).build();
+				return JsonResponseBuilder.build(game);
 			}
 			catch(IllegalArgumentException iae)
 			{
-				return Response.status(Status.BAD_REQUEST).build();
+				return ErrorResponseBuilder.build(Status.BAD_REQUEST);
 			}
 		}
 	}
